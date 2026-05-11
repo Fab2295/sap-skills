@@ -1,5 +1,7 @@
 # sap-skills
 
+[![skills.sh](https://skills.sh/b/Fab2295/sap-skills)](https://skills.sh/Fab2295/sap-skills)
+
 > Monorepo of **SAP CAP** skills for [Claude Code](https://claude.com/claude-code).
 > All skills are scoped to **SAP CAP Node.js** projects, are anchored to
 > [capire](https://cap.cloud.sap/docs/) documentation, and have **strict
