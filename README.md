@@ -25,7 +25,7 @@ deploys them to your agent's skill directory
 |---|---|---|
 | [`sap-cap-test`](skills/sap-cap-test/) | Scaffolds and runs CAP tests with `cds add test` + `cds test`. Opt-in coverage via `c8`. | Test files under `test/` and one of `CAP-TEST-REPORT.md` / `CAP-TEST-FAILURE.md` at the project root. |
 | [`sap-cap-code-review`](skills/sap-cap-code-review/) | Read-only static analysis of a PR / branch / file list. Classifies findings as Critical / High / Medium / Low. | `CAP-CODE-REVIEW.md` at the project root. |
-| [`sap-cap-upgrade`](skills/sap-cap-upgrade/) | Upgrades `@sap/cds*`, `@cap-js/*`, `@sap-cloud-sdk/*`, `@sap/eslint-plugin-cds` to the latest stable (incl. majors). Cross-checks failures against locally mirrored CAP + Cloud SDK JS changelogs and reports ONLY bugs caused by the version bump. | Edits `package.json` (and `package-lock.json` via `npm install`) in apply mode. Plan mode writes nothing. |
+| [`sap-cap-upgrade`](skills/sap-cap-upgrade/) | Upgrades `@sap/cds*`, `@cap-js/*`, `@sap-cloud-sdk/*`, `@sap/eslint-plugin-cds` to the latest stable (incl. majors). Runs a **vulnerability gate** on every target version (osv.dev primary, npm advisory bulk fallback) — aborts the upgrade when any target has an advisory ≥ moderate. Cross-checks failures against locally mirrored CAP + Cloud SDK JS changelogs and reports ONLY bugs caused by the version bump. | Edits `package.json` (and `package-lock.json` via `npm install`) in apply mode — and only when the vulnerability gate passes. Plan mode writes nothing. |
 
 ### sap-cap-test (test-only)
 
@@ -66,6 +66,15 @@ the strict A∧B∧C criteria in `skills/sap-cap-upgrade/references/bug-attribut
 **Default mode is `plan`** (read-only preview). Switch to `apply` only when
 the invocation explicitly contains one of: `apply`, `aplicar`, `confirm`,
 `confirmado`, `proceed`, `prosseguir`, `execute`, `executar`, `go`.
+
+> 🔒 **Vulnerability gate (hard stop).** Before any `package.json` write the
+> skill queries osv.dev (primary) and the npm advisory bulk endpoint
+> (fallback) for every `<pkg>@<target>`. If any target has an advisory at
+> **moderate severity or above**, the upgrade is cancelled — the JSON
+> output uses `status: "vulnerable_target"` with the offending entries in
+> `blocked_by_vulnerability[]`. Low-severity advisories surface as
+> `vulnerability_warnings[]` and do not block. If both sources fail, status
+> is `vuln_check_failed` (fail-closed). Contract: `skills/sap-cap-upgrade/references/vulnerability-check.md`.
 
 > ⚠️ This published version of `sap-cap-upgrade` is **docs-only** — the
 > companion helper scripts (`latest-versions.js`, `refresh-references.js`)

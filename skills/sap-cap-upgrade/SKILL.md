@@ -10,11 +10,13 @@ description: |
   similar. Read/upgrade only — never edits source code, never commits, never pushes.
 license: GPL-3.0
 metadata:
-  version: "0.1.0"
-  last_verified: "2026-05-08"
+  version: "0.3.0"
+  last_verified: "2026-05-12"
   sources:
     - "https://cap.cloud.sap/docs/releases/"
     - "https://sap.github.io/cloud-sdk/docs/js/release-notes"
+    - "https://api.osv.dev/v1/query"
+    - "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk"
 ---
 
 # sap-cap-upgrade — CAP Upgrade Skill
@@ -35,6 +37,7 @@ It is project-agnostic — every operation runs against the current working dire
 4. Only packages matching the regex in `references/packages-catalog.md` are bumped.
 5. The skill's terminal message MUST be the strict JSON object documented below — no prose after.
 6. Default mode is **plan** (read-only preview). Switch to **apply** mode ONLY when the invocation prompt explicitly contains one of: `apply`, `aplicar`, `confirm`, `confirmado`, `proceed`, `prosseguir`, `execute`, `executar`, `go`. In any other case, run plan mode.
+7. **Vulnerability gate (hard stop).** After resolving target versions, every `<pkg>@<target>` MUST be checked against the advisory sources defined in `references/vulnerability-check.md` (osv.dev primary, npm advisory bulk fallback). If any target has an advisory at severity **moderate or above**, the upgrade is CANCELLED — no `package.json` write, no `npm install`, no build/test rerun. `status` becomes `vulnerable_target`. Low-severity advisories are surfaced as warnings, never as a block. If both advisory sources fail, status becomes `vuln_check_failed` — the skill never proceeds without a successful gate query (fail-closed).
 
 ## Modes
 
@@ -44,7 +47,7 @@ The skill has two modes. Pick the mode by inspecting the invocation prompt; defa
 
 Goal: preview the upgrade without touching anything.
 
-Run only steps 0 + 1 (preconditions) + 2 (resolve target versions) of the migration checklist. **Do not** edit `package.json`. **Do not** run `npm install`. **Do not** capture baseline failures or run `cds build`/`npm test`. Just read `package.json`, identify in-scope deps, query npm for latest versions, and emit:
+Run only steps 0 + 1 (preconditions) + 2 (resolve target versions) + **2.5 (vulnerability gate)** of the migration checklist. **Do not** edit `package.json`. **Do not** run `npm install`. **Do not** capture baseline failures or run `cds build`/`npm test`. Just read `package.json`, identify in-scope deps, query npm for latest versions, run the vulnerability gate on those targets, and emit:
 
 ```json
 {
@@ -62,25 +65,30 @@ Run only steps 0 + 1 (preconditions) + 2 (resolve target versions) of the migrat
 
 `bumped[]` here means *proposed*, not *applied*. `from` and `to` MUST include the original range operator (`^`, `~`, exact, etc.) so the user sees what will actually be written. If a package is already at latest, omit it from `bumped[]` (don't include zero-diff entries). If no in-scope deps exist or all are already at latest, emit `status: "no_changes"` instead of `"plan"`.
 
+If the vulnerability gate (step 2.5) blocks at least one target, the emitted status is **`vulnerable_target`** and `bumped[]` is empty — the proposed bumps that hit an advisory move to `blocked_by_vulnerability[]`. The user must explicitly resolve (pin to `fixed_in`, wait, or override) before the skill is invoked again.
+
 ### Apply mode
 
 Goal: actually perform the upgrade and validate.
 
-Run the full migration checklist (steps 0–7). The terminal JSON uses `status: "ok" | "no_changes" | "install_failed" | "build_failed_unrelated"` — never `"plan"`.
+Run the full migration checklist (steps 0–7). The terminal JSON uses `status: "ok" | "no_changes" | "vulnerable_target" | "vuln_check_failed" | "install_failed" | "build_failed_unrelated"` — never `"plan"`.
+
+**Step 2.5 (vulnerability gate) runs in apply mode too** — it is a hard stop. If any target has an advisory ≥ moderate, the skill emits `status: "vulnerable_target"` and exits **before** writing to `package.json`. The same fail-closed semantics apply for `vuln_check_failed`.
 
 ## Bundled resources
 
 - `references/source.md` — canonical upstream URLs + last_fetched per source.
 - `references/packages-catalog.md` — in-scope regex + per-family routing table.
-- `references/migration-checklist.md` — exact upgrade procedure (steps 0–7).
+- `references/migration-checklist.md` — exact upgrade procedure (steps 0–7, including 2.5).
 - `references/bug-attribution-rules.md` — strict A∧B∧C criteria + blacklist.
+- `references/vulnerability-check.md` — target-version advisory gate (osv.dev primary, npm advisory bulk fallback; moderate-or-above aborts).
 - `references/changelogs/cap/changelog-<YYYY>.md` — mirrors of CAP yearly changelogs.
 - `references/changelogs/cloud-sdk-js/changelog-v<N>.md` — mirrors of Cloud SDK JS per-major release notes.
 - `references/releases/<YYYY>/<mon><YY>.md` — optional CAP per-month detail mirrors.
 
 > The companion helper scripts (`latest-versions.js`, `refresh-references.js`) are NOT bundled with this distribution. The skill calls `npm` directly instead — see step 3 of the workflow and the "Refresh references when needed" section below for the exact commands.
 
-Read these in this order before doing anything: `migration-checklist.md` → `packages-catalog.md` → `bug-attribution-rules.md`. The first defines the workflow; the second decides what to touch; the third decides what to report.
+Read these in this order before doing anything: `migration-checklist.md` → `packages-catalog.md` → `vulnerability-check.md` → `bug-attribution-rules.md`. The first defines the workflow; the second decides what to touch; the third decides whether the bump is allowed at all; the fourth decides what to report when something downstream breaks.
 
 ## Workflow (summary)
 
@@ -88,8 +96,9 @@ Follow `references/migration-checklist.md` literally. Plan mode runs steps 0–2
 
 1. **Preconditions** — `package.json` exists; `node`/`npm` resolvable; at least one in-scope dep present (otherwise emit `status:"no_changes"` and stop).
 2. **Capture baseline** _(apply mode only)_ — run `npx --no-install cds build --production` (fall back to `npx cds build` if `--production` flag unsupported) and `npm test` (only if `scripts.test` exists). Persist failures in working memory; do NOT write any file.
-3. **Resolve target versions** — for each in-scope dep, run `npm view <pkg> dist-tags.latest` (one call per package; capture stdout). The skill MUST NOT use `npm view` with wildcards or fields that hit the registry more than necessary. **Plan mode stops here and emits the plan JSON.**
-4. **Apply bumps** _(apply mode only)_ — edit `package.json` in place, preserving range operators (`^`, `~`, exact). Skip non-semver specs (tags, URLs, git+, file:) and log them in `notes`.
+3. **Resolve target versions** — for each in-scope dep, run `npm view <pkg> dist-tags.latest` (one call per package; capture stdout). The skill MUST NOT use `npm view` with wildcards or fields that hit the registry more than necessary.
+3.5. **Vulnerability gate** — for every `<pkg>@<target>` produced by step 3, query the advisory sources defined in `references/vulnerability-check.md`. osv.dev is primary; npm advisory bulk endpoint is fallback. If any target has an advisory at severity **moderate or above**, set `status: "vulnerable_target"`, move the offending bump from `bumped[]` to `blocked_by_vulnerability[]`, and **stop** (no `package.json` write, no install). Low-severity findings go to `vulnerability_warnings[]` and the run continues. If both sources fail, set `status: "vuln_check_failed"` and stop (fail-closed). **Plan mode stops here and emits the plan JSON** (with `bumped[]`, `vulnerability_warnings[]`, and possibly `blocked_by_vulnerability[]`).
+4. **Apply bumps** _(apply mode only)_ — only reached when step 3.5 passed for every bump. Edit `package.json` in place, preserving range operators (`^`, `~`, exact). Skip non-semver specs (tags, URLs, git+, file:) and log them in `notes`.
 5. **Install** _(apply mode only)_ — `npm install --no-fund --no-audit`. On non-zero exit, emit `status:"install_failed"` and stop.
 6. **Re-validate** _(apply mode only)_ — repeat step 2 commands; capture post-bump failures.
 7. **Diff + attribute** _(apply mode only)_ — apply A∧B∧C from `bug-attribution-rules.md` to every new failure. Producers go to `version_caused_bugs[]`; everything else goes to `discarded[]`.
@@ -122,9 +131,33 @@ The terminal message of this skill — and ONLY the terminal message — is one 
 ```json
 {
   "skill": "sap-cap-upgrade",
-  "status": "ok | no_changes | install_failed | build_failed_unrelated",
+  "status": "ok | no_changes | vulnerable_target | vuln_check_failed | install_failed | build_failed_unrelated",
   "bumped": [
     { "name": "@sap/cds", "from": "9.9.1", "to": "9.12.0", "major_jump": false }
+  ],
+  "blocked_by_vulnerability": [
+    {
+      "name": "@sap/cds",
+      "from": "9.9.1",
+      "to": "9.12.0",
+      "severity": "critical | high | moderate",
+      "advisory_id": "GHSA-xxxx-xxxx-xxxx",
+      "summary": "<one-line summary>",
+      "fixed_in": "9.12.1",
+      "source": "osv.dev | npm",
+      "ref": "https://github.com/advisories/GHSA-..."
+    }
+  ],
+  "vulnerability_warnings": [
+    {
+      "name": "@cap-js/sqlite",
+      "version": "2.6.0",
+      "severity": "low",
+      "advisory_id": "GHSA-yyyy-yyyy-yyyy",
+      "summary": "<one-line>",
+      "source": "osv.dev | npm",
+      "ref": "https://github.com/advisories/GHSA-..."
+    }
   ],
   "version_caused_bugs": [
     {
@@ -149,11 +182,15 @@ The terminal message of this skill — and ONLY the terminal message — is one 
 
 Field rules:
 
-- `status: "ok"` — at least one bump applied AND validation completed (regardless of whether bugs were attributed).
+- `status: "ok"` — at least one bump applied AND validation completed (regardless of whether bugs were attributed). Vulnerability gate must have passed for every bumped target.
 - `status: "no_changes"` — no in-scope deps in `package.json`, OR `npm view <pkg> dist-tags.latest` resolved no newer version for any of them.
+- `status: "vulnerable_target"` — vulnerability gate (step 3.5) blocked at least one bump. `blocked_by_vulnerability[]` is non-empty; `bumped[]` is empty (no partial upgrade); no `package.json` write, no `npm install`. Plan and apply modes both end here when the gate trips.
+- `status: "vuln_check_failed"` — both advisory sources (osv.dev primary, npm bulk fallback) failed to return a usable response. `notes[0]` MUST contain the captured errors from both attempts (truncated to 4 KB each). The skill MUST NOT silently skip the gate — fail-closed is the contract.
 - `status: "install_failed"` — `npm install` returned non-zero. `notes[0]` MUST contain the exact stderr (truncated to 4 KB).
 - `status: "build_failed_unrelated"` — post-bump build/test failed but no failure satisfied A∧B∧C, AND `discarded[].length >= 5`. Use `notes` to add `"high discard count — consider refreshing references/ from the upstream URLs listed in references/source.md"`.
-- `bumped[]` may be empty when `status` is `no_changes`.
+- `bumped[]` may be empty when `status` is `no_changes`, `vulnerable_target`, or `vuln_check_failed`. It MUST be non-empty for `status: "ok"`.
+- `blocked_by_vulnerability[]` is non-empty IFF `status: "vulnerable_target"`. Each entry MUST carry the severity, the advisory ID, and the source. `fixed_in` is best-effort (extracted from the advisory's `affected.ranges` when present, `null` otherwise).
+- `vulnerability_warnings[]` carries low-severity advisories on bumped targets. It does not affect `status` — bumps proceed normally with these present. Treat as advisory output, like `notes[]`.
 - `version_caused_bugs[].rule_id` MUST anchor to a heading present in the cited mirror file. If the anchor cannot be derived, the entry MUST be discarded instead.
 - `notes[]` is for advisory text only — never put bugs there.
 
@@ -178,3 +215,5 @@ The skill writes mirrors only when explicitly told to during refresh; otherwise,
 - Does not run dev servers, generators (`cds add`, `cds init`), code-mods, or formatters.
 - Does not interpret `notes[]` as actionable bugs.
 - Does not "soft-report" suspicions — every entry in `version_caused_bugs[]` is a strict A∧B∧C hit.
+- Does not skip the vulnerability gate, ever — not even when the user passes `--force` semantics. The only way to allow a bump that fails the gate is to wait for a patched upstream version (or for the advisory to be retracted by the source).
+- Does not auto-resolve to a "safe nearby" version when a target is flagged. The skill stops; the user decides whether to pin to `fixed_in`, wait for an upstream patch, or escalate.

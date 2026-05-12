@@ -35,7 +35,43 @@ npm view <pkg> dist-tags.latest
 
 One call per package. Capture stdout. Aggregate into `{ "@sap/cds": "9.12.0", "@cap-js/sqlite": "2.6.0", ... }`.
 
-In **plan mode**, this is the last operational step. Build the `bumped[]` proposal (only entries whose target differs from the current version, preserving the original range operator) and emit the plan JSON documented in `SKILL.md` → "Plan mode". Do not proceed past this point.
+## 2.5. Vulnerability gate (hard stop)
+
+> **This step is mandatory in BOTH plan and apply modes.** It runs after every target version is resolved (step 2) and before anything is written or installed (step 3+). See `vulnerability-check.md` for the full contract.
+
+For every `<pkg>@<target>` produced by step 2, query the advisory sources in this exact order:
+
+1. **Primary — osv.dev** (no auth):
+
+   ```sh
+   curl -sS --max-time 10 -X POST 'https://api.osv.dev/v1/query' \
+     -H 'Content-Type: application/json' \
+     -d '{"package":{"name":"<pkg>","ecosystem":"npm"},"version":"<target>"}'
+   ```
+
+2. **Fallback — npm advisory bulk** (used ONLY when osv.dev returns 5xx, times out, or returns malformed JSON):
+
+   ```sh
+   curl -sS --max-time 10 -X POST 'https://registry.npmjs.org/-/npm/v1/security/advisories/bulk' \
+     -H 'Content-Type: application/json' \
+     -H "Authorization: Bearer $(npm config get //registry.npmjs.org/:_authToken 2>/dev/null)" \
+     -d '{"<pkg>":["<target>"]}'
+   ```
+
+Normalize the response to severity ∈ {`critical`, `high`, `moderate`, `low`} per the mapping in `vulnerability-check.md`.
+
+**Decision matrix:**
+
+| Outcome | Action |
+|---|---|
+| No advisory | Keep bump in `bumped[]`. Continue. |
+| Severity `low` | Keep bump in `bumped[]`. Add entry to `vulnerability_warnings[]`. Continue. |
+| Severity `moderate \| high \| critical` | **Remove** bump from `bumped[]`. Add entry to `blocked_by_vulnerability[]`. After processing all targets, if `blocked_by_vulnerability[].length > 0`, set `status: "vulnerable_target"` and emit the JSON. **Stop.** Do not run step 3 or later. |
+| Both sources failed (HTTP error / timeout / malformed JSON on both) | Set `status: "vuln_check_failed"`. Put both attempts' errors in `notes[0]`. **Stop.** Fail-closed: do not proceed without a successful gate query. |
+
+In **plan mode**, this is the last operational step. Build the JSON output and emit it. Do not proceed past this point.
+
+In **apply mode**, only proceed to step 3 if `blocked_by_vulnerability[]` is empty AND the gate did not error. Otherwise emit the JSON and stop — same as plan mode for the gate-failure paths.
 
 ## 3. Apply bumps
 
