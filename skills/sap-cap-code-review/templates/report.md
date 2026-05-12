@@ -1,6 +1,8 @@
 # CAP Code Review
 
 > ⚠️ **Suggestions in this report require human validation before being applied.** The sap-cap-code-review skill is read-only static analysis — it does not edit code, it does not commit, and it does not push. Treat every "Suggested fix" as a pointer, not a verdict.
+>
+> 🔒 **Evidence excerpts are redacted.** All code blocks below were passed through the redaction filter at `references/secret-redaction.md` before being written. Values that matched a credential / token / private-key / URL-with-creds pattern were replaced with `[REDACTED:<kind>]`. Excerpts from `xs-security.json`, `manifest.yaml`, `mta.yaml`, `default-services.json`, `default-env.json`, or `.env*` were replaced wholesale when any redaction trigger matched. If a finding's Evidence ended up empty after redaction, the code block was omitted and a `<path>:<line>` pointer was used instead. **The original files on disk were not modified** — redaction applies only to this report.
 
 | Field | Value |
 |---|---|
@@ -11,6 +13,8 @@
 | Files analyzed | `<N>` |
 | Files skipped | `<M>` |
 | CAP runtime detected | `<@sap/cds version from package.json>` |
+| Redaction filter | `references/secret-redaction.md` (fail-closed) |
+| Redactions applied | `<count of lines/excerpts modified>` |
 
 ## Summary
 

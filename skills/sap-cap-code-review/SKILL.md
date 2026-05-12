@@ -40,6 +40,7 @@ You are a static code-review agent for **SAP CAP Node.js projects**. You analyze
    - `jsdoc-conventions.md` — **Medium** checks
    - `i18n-conventions.md` — **Medium** checks
    - `code-quality-checklist.md` — **Low** checks
+   - `secret-redaction.md` — **applied to every Evidence and Suggested-fix excerpt before writing the report**
 5. Classify each finding into Critical / High / Medium / Low using the rubric. **No invented severities.** A check that is not in `references/` produces no finding — open a discussion with the user instead of guessing.
 6. Write `CAP-CODE-REVIEW.md` at the project root using `templates/report.md`.
 7. Echo a summary table to the user. Do not paste the whole report into chat.
@@ -137,7 +138,7 @@ Each finding in the report MUST contain (in this order):
 2. **Category** — the rubric category that triggered the finding
 3. **Location** — `path/to/file.ext:line` (or `:start-end` for ranges)
 4. **Symbol** — function, method, class, action, or entity name. If at module top-level, write `<module>`.
-5. **Evidence** — a fenced code block with the offending excerpt (≤ 10 lines) and a one-sentence description of why it triggers this rubric entry
+5. **Evidence** — a fenced code block with the offending excerpt (≤ 10 lines) and a one-sentence description of why it triggers this rubric entry. **The excerpt MUST pass through the redaction filter in `references/secret-redaction.md` before being written to the report.** Secrets, tokens, private keys, basic-auth headers, URLs with embedded credentials, and similar values are replaced with `[REDACTED:<kind>]` placeholders. Files in the strict file-class list (`xs-security.json`, `manifest.yaml`, `mta.yaml`, `default-services.json`, `default-env.json`, `.env*`, anything under `secrets/`) get the whole excerpt replaced with a structural placeholder if any redaction trigger matches inside them. For SEC-007 (secrets inlined in source), the Evidence MUST NOT include the secret value at all — use the fixed format documented in `secret-redaction.md` §"Trigger D".
 6. **Capire reference** — the exact reference file under `references/` and section anchor that justifies this finding (e.g. `references/security-checklist.md#raw-sql`)
 7. **Suggested fix** — under a `> ⚠️ Suggestion — needs human validation before applying` callout, an optional fenced excerpt (≤ 5 lines) showing what the fix could look like. The illustrative fix MUST be anchored in capire docs and the user is responsible for validating fit and side-effects.
 
@@ -158,6 +159,10 @@ Findings missing any of (1)-(6) MUST NOT be emitted. (7) is optional but recomme
       [4d] Apply Medium checks (jsdoc-conventions, i18n-conventions)
       [4e] Apply Low checks (code-quality-checklist)
 [5] Aggregate findings; sort by severity desc, then file path asc, then line asc
+[5.5] Redaction pass — run every captured Evidence and Suggested-fix
+      excerpt through references/secret-redaction.md (fail-closed). Drop
+      lines that contain unclassified potential secrets; replace whole
+      excerpts when the source file is in the strict file-class list.
 [6] Render report from templates/report.md
 [7] Write to ./CAP-CODE-REVIEW.md (overwrite)
 [8] Echo summary table to user (counts by severity + report path). Do not paste the report.
@@ -180,6 +185,7 @@ See `templates/report.md`. The skill writes that template with placeholders fill
 5. **No fabricated suggestions.** A suggested fix must be expressible as "the capire docs show this pattern" — cite the reference. If you can't cite, omit the fix and leave only the finding.
 6. **Always overwrite the report.** Do not append; do not create timestamped variants. The single source of truth is `CAP-CODE-REVIEW.md` at the project root.
 7. **Refuse out-of-scope projects** (Java CAP, non-CAP Node.js, missing `@sap/cds`). Do not "best-effort" review them — abort.
+8. **Redact every Evidence excerpt and every Suggested-fix excerpt** through `references/secret-redaction.md` before writing the report. The redaction filter is **fail-closed**: when a line contains something that "looks secret" but cannot be safely classified, drop the line. When the redacted excerpt would be empty, render the finding **without** the code block and write one prose sentence pointing at `<path>:<line>` instead. The skill MUST NEVER paste a verbatim secret into the report — not even from a file the user has under version control, not even when the user explicitly asks for "the raw evidence", not even partially.
 
 ---
 

@@ -111,6 +111,14 @@ Also flag: `entity Y` declared inside a service without entity-level `@restrict`
 
 **Suggested fix anchor.** Move to `cds.env`, `process.env`, or a CF/Kyma service binding referenced via `cds.requires.<X>.binding`.
 
+**Evidence redaction (mandatory).** SEC-007's whole purpose is to flag the presence of an inlined secret. The Evidence block MUST NOT include the secret value — not even partially. Use the fixed format from `secret-redaction.md` §"Trigger D":
+
+```
+<key-or-variable-name>: [REDACTED:found-secret]
+```
+
+The `Location` field (`<file>:<line>`) is what allows the human to navigate to the original. The report itself MUST be safe to share.
+
 ---
 
 ## SEC-008 — Personal data without `@PersonalData` annotation

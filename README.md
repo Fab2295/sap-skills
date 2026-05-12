@@ -48,7 +48,22 @@ Reference: <https://cap.cloud.sap/docs/node.js/cds-test>
 
 **Never**: edits any source file; runs `git add/commit/push`; emits a
 finding that isn't anchored to a Rule ID under
-`skills/sap-cap-code-review/references/`.
+`skills/sap-cap-code-review/references/`; pastes a verbatim secret
+into the report.
+
+> 🔒 **Secret redaction (mandatory).** Every Evidence and Suggested-fix
+> excerpt is passed through the fail-closed filter at
+> [`skills/sap-cap-code-review/references/secret-redaction.md`](skills/sap-cap-code-review/references/secret-redaction.md):
+> credential-shaped keys (`clientSecret`, `password`, `token`, `apiKey`,
+> `privateKey`, `connectionString`, etc.) and value-shape patterns
+> (JWTs, `Bearer …`, PEM blocks, URLs with embedded `user:password@`,
+> long hex/base64 blobs) are replaced with `[REDACTED:<kind>]`.
+> Excerpts from credential-shaped files (`xs-security.json`,
+> `manifest.yaml`, `mta.yaml`, `default-services.json`,
+> `default-env.json`, `.env*`, `secrets/`) are replaced wholesale when
+> any redaction trigger matches. SEC-007 (secrets inlined in source)
+> uses a fixed redaction format — the value is never written to the
+> report.
 
 Reference rubric: `skills/sap-cap-code-review/references/severity-rubric.md`
 
