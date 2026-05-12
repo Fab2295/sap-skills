@@ -91,6 +91,20 @@ the invocation explicitly contains one of: `apply`, `aplicar`, `confirm`,
 > `vulnerability_warnings[]` and do not block. If both sources fail, status
 > is `vuln_check_failed` (fail-closed). Contract: `skills/sap-cap-upgrade/references/vulnerability-check.md`.
 
+> 🔒 **Output redaction (mandatory, fail-closed).** Every string the skill
+> captures from `npm install`, `cds build`, the osv.dev response, and the
+> npm advisory bulk endpoint is passed through
+> [`skills/sap-cap-upgrade/references/output-redaction.md`](skills/sap-cap-upgrade/references/output-redaction.md)
+> before being written into the JSON output (`notes[]`,
+> `discarded[].error_excerpt`, etc.). Masks: `Authorization: Bearer …`,
+> `_authToken=…` npmrc lines, JWTs, GitHub/AWS tokens, URLs with embedded
+> `user:password@`, and unclassified token-shaped runs adjacent to
+> credential keywords. The npm advisory fallback reads the token via a
+> one-shot env var (`NPM_AUTH_TOKEN=$(...) curl ...`) — the token never
+> reaches the visible command line. Truncation happens **after**
+> redaction (not before — otherwise half a secret could survive at the
+> boundary).
+
 > ⚠️ This published version of `sap-cap-upgrade` is **docs-only** — the
 > companion helper scripts (`latest-versions.js`, `refresh-references.js`)
 > are NOT bundled. The skill uses `npm view <pkg> dist-tags.latest`

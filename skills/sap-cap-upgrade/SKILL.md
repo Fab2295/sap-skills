@@ -10,7 +10,7 @@ description: |
   similar. Read/upgrade only — never edits source code, never commits, never pushes.
 license: GPL-3.0
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
   last_verified: "2026-05-12"
   sources:
     - "https://cap.cloud.sap/docs/releases/"
@@ -38,6 +38,7 @@ It is project-agnostic — every operation runs against the current working dire
 5. The skill's terminal message MUST be the strict JSON object documented below — no prose after.
 6. Default mode is **plan** (read-only preview). Switch to **apply** mode ONLY when the invocation prompt explicitly contains one of: `apply`, `aplicar`, `confirm`, `confirmado`, `proceed`, `prosseguir`, `execute`, `executar`, `go`. In any other case, run plan mode.
 7. **Vulnerability gate (hard stop).** After resolving target versions, every `<pkg>@<target>` MUST be checked against the advisory sources defined in `references/vulnerability-check.md` (osv.dev primary, npm advisory bulk fallback). If any target has an advisory at severity **moderate or above**, the upgrade is CANCELLED — no `package.json` write, no `npm install`, no build/test rerun. `status` becomes `vulnerable_target`. Low-severity advisories are surfaced as warnings, never as a block. If both advisory sources fail, status becomes `vuln_check_failed` — the skill never proceeds without a successful gate query (fail-closed).
+8. **Output redaction (mandatory, fail-closed).** Every captured string about to land in `notes[]`, `discarded[].error_excerpt`, or any other free-form JSON field MUST pass through `references/output-redaction.md` BEFORE being assigned and BEFORE the 4 KB truncation. This protects against npm/curl stderr leaking `.npmrc` tokens, `Authorization: Bearer …` headers, JWTs, `_authToken=…` lines, AWS access keys, GitHub tokens, and URLs with embedded `user:password@`. The npm-advisory-bulk fallback in the vulnerability gate MUST read the auth token via a one-shot env var (`NPM_AUTH_TOKEN=$(npm config get …) curl …`) and MUST NOT echo the constructed curl command into any captured output.
 
 ## Modes
 
@@ -82,6 +83,7 @@ Run the full migration checklist (steps 0–7). The terminal JSON uses `status: 
 - `references/migration-checklist.md` — exact upgrade procedure (steps 0–7, including 2.5).
 - `references/bug-attribution-rules.md` — strict A∧B∧C criteria + blacklist.
 - `references/vulnerability-check.md` — target-version advisory gate (osv.dev primary, npm advisory bulk fallback; moderate-or-above aborts).
+- `references/output-redaction.md` — fail-closed redaction filter applied to every captured string (npm/curl stderr, response bodies) before it enters the JSON output.
 - `references/changelogs/cap/changelog-<YYYY>.md` — mirrors of CAP yearly changelogs.
 - `references/changelogs/cloud-sdk-js/changelog-v<N>.md` — mirrors of Cloud SDK JS per-major release notes.
 - `references/releases/<YYYY>/<mon><YY>.md` — optional CAP per-month detail mirrors.
@@ -185,8 +187,8 @@ Field rules:
 - `status: "ok"` — at least one bump applied AND validation completed (regardless of whether bugs were attributed). Vulnerability gate must have passed for every bumped target.
 - `status: "no_changes"` — no in-scope deps in `package.json`, OR `npm view <pkg> dist-tags.latest` resolved no newer version for any of them.
 - `status: "vulnerable_target"` — vulnerability gate (step 3.5) blocked at least one bump. `blocked_by_vulnerability[]` is non-empty; `bumped[]` is empty (no partial upgrade); no `package.json` write, no `npm install`. Plan and apply modes both end here when the gate trips.
-- `status: "vuln_check_failed"` — both advisory sources (osv.dev primary, npm bulk fallback) failed to return a usable response. `notes[0]` MUST contain the captured errors from both attempts (truncated to 4 KB each). The skill MUST NOT silently skip the gate — fail-closed is the contract.
-- `status: "install_failed"` — `npm install` returned non-zero. `notes[0]` MUST contain the exact stderr (truncated to 4 KB).
+- `status: "vuln_check_failed"` — both advisory sources (osv.dev primary, npm bulk fallback) failed to return a usable response. `notes[0]` MUST contain the captured errors from both attempts — **after passing through `references/output-redaction.md`** — truncated to 4 KB each. The skill MUST NOT silently skip the gate — fail-closed is the contract.
+- `status: "install_failed"` — `npm install` returned non-zero. `notes[0]` MUST contain the captured stderr **after passing through `references/output-redaction.md`** (auth tokens, Bearer headers, npmrc lines, JWTs, AWS/GitHub tokens, URLs with embedded credentials are masked). Truncation to 4 KB happens AFTER redaction, never before.
 - `status: "build_failed_unrelated"` — post-bump build/test failed but no failure satisfied A∧B∧C, AND `discarded[].length >= 5`. Use `notes` to add `"high discard count — consider refreshing references/ from the upstream URLs listed in references/source.md"`.
 - `bumped[]` may be empty when `status` is `no_changes`, `vulnerable_target`, or `vuln_check_failed`. It MUST be non-empty for `status: "ok"`.
 - `blocked_by_vulnerability[]` is non-empty IFF `status: "vulnerable_target"`. Each entry MUST carry the severity, the advisory ID, and the source. `fixed_in` is best-effort (extracted from the advisory's `affected.ranges` when present, `null` otherwise).
