@@ -25,6 +25,7 @@ deploys them to your agent's skill directory
 |---|---|---|
 | [`sap-cap-test`](skills/sap-cap-test/) | Scaffolds and runs CAP tests with `cds add test` + `cds test`. Opt-in coverage via `c8`. | Test files under `test/` and one of `CAP-TEST-REPORT.md` / `CAP-TEST-FAILURE.md` at the project root. |
 | [`sap-cap-code-review`](skills/sap-cap-code-review/) | Read-only static analysis of a PR / branch / file list. Classifies findings as Critical / High / Medium / Low. | `CAP-CODE-REVIEW.md` at the project root. |
+| [`monza`](skills/monza/) | Upgrades `@sap/cds*`, `@cap-js/*`, `@sap-cloud-sdk/*`, `@sap/eslint-plugin-cds` to the latest stable (incl. majors). Cross-checks failures against locally mirrored CAP + Cloud SDK JS changelogs and reports ONLY bugs caused by the version bump. | Edits `package.json` (and `package-lock.json` via `npm install`) in apply mode. Plan mode writes nothing. |
 
 ### sap-cap-test (test-only)
 
@@ -50,6 +51,29 @@ finding that isn't anchored to a Rule ID under
 `skills/sap-cap-code-review/references/`.
 
 Reference rubric: `skills/sap-cap-code-review/references/severity-rubric.md`
+
+### monza (CAP upgrade)
+
+| Allowed write targets |
+|---|
+| `package.json` (in apply mode only) |
+| `package-lock.json` — indirectly, via `npm install` |
+
+**Never**: edits source code; runs `git add/commit/push/checkout/restore/stash`;
+calls another skill; reports a failure as "version-caused" unless it satisfies
+the strict A∧B∧C criteria in `skills/monza/references/bug-attribution-rules.md`.
+
+**Default mode is `plan`** (read-only preview). Switch to `apply` only when
+the invocation explicitly contains one of: `apply`, `aplicar`, `confirm`,
+`confirmado`, `proceed`, `prosseguir`, `execute`, `executar`, `go`.
+
+> ⚠️ This published version of monza is **docs-only** — the companion
+> helper scripts (`latest-versions.js`, `refresh-references.js`) are NOT
+> bundled. The skill uses `npm view <pkg> dist-tags.latest` directly for
+> version resolution, and reference mirrors must be refreshed manually
+> from the URLs in `skills/monza/references/source.md`.
+
+Reference catalog: `skills/monza/references/packages-catalog.md`
 
 ## Shared principles
 
@@ -79,10 +103,13 @@ sap-skills/
     │   ├── SKILL.md
     │   ├── references/
     │   └── templates/
-    └── sap-cap-code-review/
+    ├── sap-cap-code-review/
+    │   ├── SKILL.md
+    │   ├── references/
+    │   └── templates/
+    └── monza/
         ├── SKILL.md
-        ├── references/
-        └── templates/
+        └── references/          ← changelogs/, releases/, packages-catalog.md, ...
 ```
 
 `SKILL.md` is the contract the agent reads. `references/` are the
