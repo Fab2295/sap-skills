@@ -1,5 +1,5 @@
 ---
-name: monza
+name: sap-cap-upgrade
 description: |
   Upgrade SAP CAP and SAP-related libraries (@sap/cds*, @cap-js/*, @sap-cloud-sdk/*,
   @sap/eslint-plugin-cds) in the current working directory. Strategy: latest stable
@@ -17,7 +17,7 @@ metadata:
     - "https://sap.github.io/cloud-sdk/docs/js/release-notes"
 ---
 
-# Monza — CAP Upgrade Skill
+# sap-cap-upgrade — CAP Upgrade Skill
 
 This skill performs ONE thing: bumps in-scope SAP/CAP packages in the current project's `package.json` to the latest stable version (including majors), runs the project's build + test commands, and emits a strict JSON report of bugs caused **specifically** by the bump.
 
@@ -25,7 +25,7 @@ It is project-agnostic — every operation runs against the current working dire
 
 ## Related skills
 
-- **sap-cap-capire (Senua)** — CAP development. The monza skill never invokes Senua directly; the coordinator agent (`cap-upgrade-coordinator`) does that based on the JSON this skill emits.
+- **sap-cap-capire (Senua)** — CAP development. The sap-cap-upgrade skill never invokes Senua directly; the coordinator agent (`cap-upgrade-coordinator`) does that based on the JSON this skill emits.
 
 ## Hard invariants
 
@@ -48,7 +48,7 @@ Run only steps 0 + 1 (preconditions) + 2 (resolve target versions) of the migrat
 
 ```json
 {
-  "skill": "monza",
+  "skill": "sap-cap-upgrade",
   "status": "plan",
   "bumped": [
     { "name": "@sap/cds", "from": "^9.9.1", "to": "^9.12.0", "major_jump": false }
@@ -121,7 +121,7 @@ The terminal message of this skill — and ONLY the terminal message — is one 
 
 ```json
 {
-  "skill": "monza",
+  "skill": "sap-cap-upgrade",
   "status": "ok | no_changes | install_failed | build_failed_unrelated",
   "bumped": [
     { "name": "@sap/cds", "from": "9.9.1", "to": "9.12.0", "major_jump": false }

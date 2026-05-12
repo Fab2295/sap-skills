@@ -1,6 +1,6 @@
 # Packages Catalog — In-Scope Libraries
 
-The `monza` skill operates **only** on packages whose name matches the regex below. Anything else in `package.json` (including `@sap/xssec`, `@sap/approuter`, `@sap/hana-client`, `@sap/audit-logging` if present as standalone, etc.) is left untouched — even when listed in the same file.
+The `sap-cap-upgrade` skill operates **only** on packages whose name matches the regex below. Anything else in `package.json` (including `@sap/xssec`, `@sap/approuter`, `@sap/hana-client`, `@sap/audit-logging` if present as standalone, etc.) is left untouched — even when listed in the same file.
 
 ## Aggregate regex (authoritative)
 
@@ -21,7 +21,7 @@ Each match is routed to **exactly one** changelog source. The skill must use the
 
 ## Out of scope (never bumped, never blamed)
 
-These packages may exist in `package.json` but are deliberately ignored by `monza`:
+These packages may exist in `package.json` but are deliberately ignored by `sap-cap-upgrade`:
 
 - `@sap/xssec`, `@sap/approuter`, `@sap/hana-client`, `@sap/audit-logging` (the standalone non-`@cap-js/*` variant), `@sap/instance-manager`, `@sap/textbundle`, `@sap/hdi-deploy`, `@sap/cds-dbm`
 - Anything not under `@sap/cds*`, `@cap-js/*`, `@sap-cloud-sdk/*`, or `@sap/eslint-plugin-cds`

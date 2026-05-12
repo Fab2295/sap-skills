@@ -1,8 +1,8 @@
-# Sources of Truth — monza
+# Sources of Truth — sap-cap-upgrade
 
-This file pins the canonical upstream URLs for every changelog mirrored in `references/changelogs/`. The `monza` skill **must** cite a `rule_id` anchored in one of these mirrors when reporting a `version_caused_bug`. Anything not anchored here is, by definition, not version-attributable.
+This file pins the canonical upstream URLs for every changelog mirrored in `references/changelogs/`. The `sap-cap-upgrade` skill **must** cite a `rule_id` anchored in one of these mirrors when reporting a `version_caused_bug`. Anything not anchored here is, by definition, not version-attributable.
 
-`scripts/refresh-references.js` rewrites this file on every run.
+This file is maintained manually in the published distribution. The previous companion script (`refresh-references.js`) is NOT bundled here — see "Refresh policy" below for the manual procedure.
 
 ---
 
@@ -33,8 +33,12 @@ This file pins the canonical upstream URLs for every changelog mirrored in `refe
 
 ## Refresh policy
 
-The coordinator agent runs `node scripts/refresh-references.js` automatically when, for any source:
+The skill MUST surface a refresh request (and stop) when, for any source:
 - `last_fetched` is older than 30 days, OR
 - the upgrade target version has no entry in the corresponding mirror.
 
-Manual refresh: `node ~/.claude/skills/monza/scripts/refresh-references.js`.
+Manual refresh procedure (run by the user — the skill does not fetch upstream content on its own):
+
+1. Open the canonical URL above for the affected source.
+2. Save the page (Reader mode → "Save as Markdown" extensions work well) and overwrite the corresponding file under `references/changelogs/...` or `references/releases/...`.
+3. Update the `last_fetched` line in this file to today's ISO timestamp.

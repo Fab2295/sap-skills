@@ -39,7 +39,7 @@ The public surface is the package root: `require('@sap/cds')` and the documented
 - `cds.context.http.req.authInfo` — replaced by `cds.context.user.authInfo` (cds@9.3)
 - `express.Request.user`, `express.Request.tenant` — never public; use `cds.context.user/tenant`
 
-**Reference.** capire release notes — each entry above is anchored in the corresponding monthly changelog entry. If a project uses `monza`'s changelog mirror (`~/.claude/skills/monza/references/changelogs/cap/`), cite the exact line.
+**Reference.** capire release notes — each entry above is anchored in the corresponding monthly changelog entry. If a project uses `sap-cap-upgrade`'s changelog mirror (`~/.claude/skills/sap-cap-upgrade/references/changelogs/cap/`), cite the exact line.
 
 **Why.** Deprecated APIs get a deprecation warning today and a removal next major. Code on a deprecated API ages into a breaking change.
 
@@ -129,4 +129,4 @@ The rule fires only if the external lib is **referenced from production code** u
 - It does NOT block adding `@cap-js/*` plugins, `@sap/cds-*` add-ons, or new `@sap-cloud-sdk/*` packages — those are in-scope CAP ecosystem deps.
 - It does NOT flag transitive deps. The rule is on direct deps in *this* `package.json`.
 - It does NOT enforce a ban on a specific lib globally. The list above is curated to "duplicates CAP native"; libs not on the list are out of scope for this rule.
-- It does NOT validate semver ranges. Use `monza` for version-bump analysis.
+- It does NOT validate semver ranges. Use `sap-cap-upgrade` for version-bump analysis.

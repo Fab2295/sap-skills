@@ -30,10 +30,10 @@ In **plan mode**, skip this step entirely — no commands run, no baseline captu
 For every dependency in `package.json` (under `dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies`) whose name matches the regex in `packages-catalog.md`:
 
 ```sh
-node ~/.claude/skills/monza/scripts/latest-versions.js <pkg> [<pkg>...]
+npm view <pkg> dist-tags.latest
 ```
 
-Result: `{ "@sap/cds": "9.12.0", "@cap-js/sqlite": "2.6.0", ... }`.
+One call per package. Capture stdout. Aggregate into `{ "@sap/cds": "9.12.0", "@cap-js/sqlite": "2.6.0", ... }`.
 
 In **plan mode**, this is the last operational step. Build the `bumped[]` proposal (only entries whose target differs from the current version, preserving the original range operator) and emit the plan JSON documented in `SKILL.md` → "Plan mode". Do not proceed past this point.
 

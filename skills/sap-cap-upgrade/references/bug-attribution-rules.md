@@ -1,6 +1,6 @@
 # Bug Attribution Rules (strict)
 
-The `monza` skill is forbidden from reporting any failure as version-caused unless **all three** criteria below hold simultaneously. When in doubt, **discard**. False negatives are acceptable; false positives are not.
+The `sap-cap-upgrade` skill is forbidden from reporting any failure as version-caused unless **all three** criteria below hold simultaneously. When in doubt, **discard**. False negatives are acceptable; false positives are not.
 
 The whole point of these rules is to make `version_caused_bugs[]` a list the coordinator can trust without re-checking — and to keep the boundary "is this from the bump?" anchored in the official changelogs, not in the model's intuition.
 
