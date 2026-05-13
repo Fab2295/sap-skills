@@ -10,7 +10,7 @@ description: |
   similar. Read/upgrade only — never edits source code, never commits, never pushes.
 license: GPL-3.0
 metadata:
-  version: "0.5.1"
+  version: "0.5.2"
   last_verified: "2026-05-13"
   sources:
     - "https://cap.cloud.sap/docs/releases/"
@@ -30,7 +30,7 @@ It is project-agnostic — every operation runs against the current working dire
 1. Source code (anything outside `package.json`/lockfile) MUST NOT be modified.
 2. `git add`/`commit`/`push`/`checkout`/`restore`/`stash` MUST NOT be invoked.
 3. A failure MUST NOT be reported as `version_caused_bug` unless it satisfies all three criteria in `references/bug-attribution-rules.md` (baseline diff + regex hit in an official changelog entry + version crossing). When in doubt, discard.
-4. Only packages matching the regex in `references/packages-catalog.md` are bumped.
+4. Only packages matching the regex in `references/packages-catalog.md` are bumped. The skill is intentionally scoped to the four SAP CAP families it ships changelog mirrors for: `@sap/cds*`, `@cap-js/*`, `@sap-cloud-sdk/*`, and `@sap/eslint-plugin-cds`. Anything else — **including other `@sap/*` packages** like `@sap/xssec`, `@sap/approuter`, `@sap/hana-client`, `@sap/audit-logging` standalone, and any non-SAP runtime dependency (`express`, `axios`, `lodash`, …) — is out of scope **by design**, because bug attribution (A∧B∧C in `bug-attribution-rules.md`) requires a mirrored official changelog and those families don't have one. See `references/packages-catalog.md` §"Why this scope?" for the rationale.
 5. The skill's terminal message MUST be the strict JSON object documented below — no prose after.
 6. Default mode is **plan** (read-only preview). Switch to **apply** mode ONLY when the invocation prompt explicitly contains one of: `apply`, `aplicar`, `confirm`, `confirmado`, `proceed`, `prosseguir`, `execute`, `executar`, `go`. In any other case, run plan mode.
 7. **Vulnerability gate (hard stop).** After resolving target versions, every `<pkg>@<target>` MUST be checked against the advisory sources defined in `references/vulnerability-check.md` (osv.dev primary, npm advisory bulk fallback). If any target has an advisory at severity **moderate or above**, the upgrade is CANCELLED — no `package.json` write, no `npm install`, no build/test rerun. `status` becomes `vulnerable_target`. Low-severity advisories are surfaced as warnings, never as a block. If both advisory sources fail, status becomes `vuln_check_failed` — the skill never proceeds without a successful gate query (fail-closed).
@@ -113,6 +113,8 @@ Use the regex from `references/packages-catalog.md`:
 ```
 
 Inspect `package.json` keys under `dependencies`, `devDependencies`, `peerDependencies`, and `optionalDependencies`. For each match, record the original spec and the routing target (CAP changelog or Cloud SDK JS changelog) per the catalog's routing table.
+
+> The regex is **exhaustive and exclusive**. Any package that does not match — whether it's another `@sap/*` package, a `@cap-js-community/*` package, or a generic dependency like `express` — MUST NOT appear in `bumped[]`. If the user explicitly asks to upgrade an out-of-scope package, the skill MUST refuse with a message that names the package and points to `references/packages-catalog.md` §"Why this scope?". The skill does not "just this once" bump anything outside the regex.
 
 ## Bug attribution
 
