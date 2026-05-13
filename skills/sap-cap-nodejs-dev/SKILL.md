@@ -28,8 +28,8 @@ description: |
     and stop — do not reach into internals.
 license: GPL-3.0
 metadata:
-  version: "3.1.0"
-  last_verified: "2026-05-12"
+  version: "3.2.0"
+  last_verified: "2026-05-13"
   runtime: "Node.js only"
   cap_version: "@sap/cds 9.7.x"
   mcp_version: "@cap-js/mcp-server 0.0.3+"
@@ -87,12 +87,22 @@ cannot express it:
 
 1. **Schema** — types, associations, compositions, aspects from `@sap/cds/common`.
 2. **Annotations** — `@mandatory`, `@assert.*`, `@readonly`, `@insertonly`, `@requires`,
-   `@restrict`, `@cds.persistence.*`, `@cds.search`, `@odata.draft.enabled`, `@UI.*`.
+   `@restrict`, `@cds.persistence.*`, `@cds.search`, `@odata.draft.enabled`, `@odata.etag`,
+   `@UI.*`.
 3. **Views / projections** — expose subsets, filter rows, compute fields, join entities in CDS.
-4. **CAP plugins** — `@cap-js/attachments`, `@cap-js/audit-logging`, `@cap-js/change-tracking`,
+4. **Status Flows** — when the behavior is a state machine (row walks through named states),
+   use `@flow.status` + `@from` + `@to`. CAP validates the entry state and writes the target
+   state. See [references/status-flow.md](references/status-flow.md). ⚠ Currently Gamma in
+   capire — only adopt with explicit team acceptance.
+5. **CAP plugins** — `@cap-js/attachments`, `@cap-js/audit-logging`, `@cap-js/change-tracking`,
    `@cap-js/telemetry`, `@cap-js/graphql`, etc.
-5. **Event handlers** (last resort) — only for behavior that is genuinely business logic and
-   cannot be expressed declaratively.
+6. **Concurrency control** — `@odata.etag` (via `managed.modifiedAt`) for optimistic locking;
+   `cds.tx(req)` with `.forUpdate()` on the base entity when invariants span multiple rows.
+   See [references/concurrency-control.md](references/concurrency-control.md) and
+   [references/race-conditions.md](references/race-conditions.md).
+7. **Event handlers** (last resort) — only for behavior that is genuinely business logic and
+   cannot be expressed declaratively by steps 1–6. Never re-implement what `@from`/`@to`,
+   `@odata.etag`, `@assert.*`, `@requires`, or a projection already does for free.
 
 Full explanation, examples, and the "is this PR domain-first?" checklist:
 [references/domain-first.md](references/domain-first.md).
@@ -197,6 +207,16 @@ Use cases: [references/mcp-use-cases.md](references/mcp-use-cases.md).
 - [cql-queries.md](references/cql-queries.md) — CQL basics.
 - [cql-patterns.md](references/cql-patterns.md) — CQL usage patterns.
 - [csn-cqn-cxn.md](references/csn-cqn-cxn.md) — Core Schema Notation and query APIs.
+- [sql-injection.md](references/sql-injection.md) — why CAP's CQL prevents injection, when raw
+  SQL is allowed, identifier allow-lists.
+
+### State, concurrency & safety
+- [status-flow.md](references/status-flow.md) — `@flow.status` + `@from` + `@to` for
+  state-machine use cases (capire Gamma).
+- [concurrency-control.md](references/concurrency-control.md) — `@odata.etag` optimistic
+  locking, `.forUpdate()` pessimistic locking, draft serialization.
+- [race-conditions.md](references/race-conditions.md) — TOCTOU, transactions, bootstrap
+  races, event-consumer idempotency.
 
 ### Runtime & handlers (use sparingly — model first)
 - [nodejs-runtime.md](references/nodejs-runtime.md) — Node.js runtime reference.
@@ -207,7 +227,7 @@ Use cases: [references/mcp-use-cases.md](references/mcp-use-cases.md).
 ### Persistence
 - [databases.md](references/databases.md) — DB configuration.
 - [data-privacy-security.md](references/data-privacy-security.md) — GDPR, security.
-- [localization-temporal.md](references/localization-temporal.md) — i18n, temporal data.
+- [localization-temporal.md](references/localization-temporal.md) — i18n (UI bundle `i18n.properties` and **error-message bundle `messages.properties`** for `req.error` / `req.reject`, built-in keys `ASSERT_MANDATORY`, `ASSERT_RANGE`, `ASSERT_FORMAT`, `ASSERT_TARGET`, `MULTIPLE_ERRORS`), temporal data.
 
 ### Integration & deployment
 - [consuming-services-deployment.md](references/consuming-services-deployment.md) — remote

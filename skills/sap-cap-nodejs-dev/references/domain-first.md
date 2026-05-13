@@ -37,11 +37,23 @@ one cannot express it:
    `@cds.search`, `@Core.Computed`, etc.
 3. **Views / projections** — expose subsets, filter rows, compute fields, join entities
    in CDS instead of in JS.
-4. **CAP plugins** — `@cap-js/attachments`, `@cap-js/audit-logging`,
+4. **Status Flows** — when the use case is a true state machine (a row walks through a
+   finite set of named states), model transitions declaratively with `@flow.status` +
+   `@from` + `@to`. CAP validates the entry state and writes the target state
+   automatically. See [status-flow.md](status-flow.md). Caveat: Status Flows are
+   currently **Gamma** in capire; only adopt with explicit team acceptance of that
+   stability tier — otherwise stay on annotations from step 2.
+5. **CAP plugins** — `@cap-js/attachments`, `@cap-js/audit-logging`,
    `@cap-js/change-tracking`, `@cap-js/telemetry`, `@cap-js/graphql`. Don't re-invent
    what a documented plugin already does.
-5. **Event handlers** (last resort) — write a `before` / `on` / `after` handler **only**
-   for behavior that is genuinely business logic and cannot be expressed declaratively.
+6. **Concurrency control** — when reads and writes can interleave across requests,
+   reach for `@odata.etag` (via `managed.modifiedAt`) and, when invariants span multiple
+   rows, `cds.tx(req)` with `.forUpdate()` on the base entity. See
+   [concurrency-control.md](concurrency-control.md) and [race-conditions.md](race-conditions.md).
+7. **Event handlers** (last resort) — write a `before` / `on` / `after` handler **only**
+   for behavior that is genuinely business logic and cannot be expressed declaratively
+   by steps 1–6. Never re-implement what `@from`/`@to`, `@odata.etag`, `@assert.*`,
+   `@requires`, or a projection already does for free.
 
 > If you find yourself writing a handler that reads, filters, and returns an entity, stop
 > and model it as a projection.
