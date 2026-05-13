@@ -2,7 +2,7 @@
 
 The `sap-cap-upgrade` skill is forbidden from reporting any failure as version-caused unless **all three** criteria below hold simultaneously. When in doubt, **discard**. False negatives are acceptable; false positives are not.
 
-The whole point of these rules is to make `version_caused_bugs[]` a list the coordinator can trust without re-checking — and to keep the boundary "is this from the bump?" anchored in the official changelogs, not in the model's intuition.
+The whole point of these rules is to make `version_caused_bugs[]` a list the operator (or any downstream consumer of the JSON) can trust without re-checking — and to keep the boundary "is this from the bump?" anchored in the official changelogs, not in the model's intuition.
 
 ---
 
@@ -54,7 +54,7 @@ The following are **always** discarded, regardless of A/B/C:
 
 If a single failure could be attributed to two changelog entries (e.g. one in CAP, one in Cloud SDK JS), pick the one whose package name appears in the captured error text. If neither package name appears explicitly, discard with `reason: "ambiguous source"`.
 
-If two in-scope packages were bumped in the same run and both have a candidate matching entry, the bug is duplicated — once per `(rule_id, package)` pair — so the coordinator can hand both refs to Senua.
+If two in-scope packages were bumped in the same run and both have a candidate matching entry, the bug is duplicated — once per `(rule_id, package)` pair — so the operator sees both refs in the report.
 
 ---
 

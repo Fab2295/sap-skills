@@ -10,7 +10,7 @@ description: |
   similar. Read/upgrade only — never edits source code, never commits, never pushes.
 license: GPL-3.0
 metadata:
-  version: "0.5.0"
+  version: "0.5.1"
   last_verified: "2026-05-13"
   sources:
     - "https://cap.cloud.sap/docs/releases/"
@@ -23,11 +23,7 @@ metadata:
 
 This skill performs ONE thing: bumps in-scope SAP/CAP packages in the current project's `package.json` to the latest stable version (including majors), runs the project's build + test commands, and emits a strict JSON report of bugs caused **specifically** by the bump.
 
-It is project-agnostic — every operation runs against the current working directory. It is read/upgrade-only — it touches `package.json` and `package-lock.json` (the latter via `npm install`), nothing else. It never invokes Git, never edits source code, and never calls another skill.
-
-## Related skills
-
-- **sap-cap-capire (Senua)** — CAP development. The sap-cap-upgrade skill never invokes Senua directly; the coordinator agent (`cap-upgrade-coordinator`) does that based on the JSON this skill emits.
+It is project-agnostic — every operation runs against the current working directory. It is read/upgrade-only — it touches `package.json` and `package-lock.json` (the latter via `npm install`), nothing else. It never invokes Git, never edits source code, and never calls another skill or agent.
 
 ## Hard invariants
 
@@ -198,7 +194,7 @@ Field rules:
 - `version_caused_bugs[].rule_id` MUST anchor to a heading present in the cited mirror file. If the anchor cannot be derived, the entry MUST be discarded instead.
 - `notes[]` is for advisory text only — never put bugs there.
 
-Do NOT print explanatory prose before, after, or interleaved with the JSON. The coordinator agent parses the last assistant message verbatim.
+Do NOT print explanatory prose before, after, or interleaved with the JSON. The last assistant message is the machine-readable report; any consumer (the user, a downstream tool, a CI step) parses it verbatim.
 
 ## Refresh references when needed
 
@@ -214,7 +210,7 @@ The skill writes mirrors only when explicitly told to during refresh; otherwise,
 
 ## What this skill never does
 
-- Does not invoke `Skill` for `sap-cap-capire` or any other skill.
+- Does not invoke any other skill or agent. The skill MUST NOT call `Skill`, `Agent`, or any equivalent tool — its only outputs are the in-place edits to `package.json`/`package-lock.json` (apply mode) and the terminal JSON report. Downstream work (applying fixes for `version_caused_bugs[]`, regenerating docs, etc.) is the user's call.
 - Does not write files outside `package.json` and `package-lock.json` (the latter via `npm install`). Mirror files under `references/` are refreshed manually by the user — the skill does NOT fetch upstream content on its own.
 - Does not run dev servers, generators (`cds add`, `cds init`), code-mods, or formatters.
 - Does not interpret `notes[]` as actionable bugs.

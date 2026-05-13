@@ -113,5 +113,5 @@ Last message of the skill is the strict JSON object documented in `SKILL.md` ("O
 
 - `git add`, `git commit`, `git push`, `git checkout`, `git restore`, `git stash` — never.
 - Editing source files (anything outside `package.json` and `package-lock.json`/`npm-shrinkwrap.json`/`yarn.lock` as side-effect of `npm install`).
-- Calling the Senua skill — that is the coordinator agent's job.
+- Invoking any other skill or agent. The skill MUST NOT call `Skill`, `Agent`, or any equivalent tool. Acting on the report (applying source fixes for `version_caused_bugs[]`, regenerating CDS / docs, etc.) is the operator's call, made outside this skill.
 - Running `npm publish`, `npm link`, `npm dedupe`, `npm prune --production`.
