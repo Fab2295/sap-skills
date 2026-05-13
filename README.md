@@ -26,6 +26,7 @@ deploys them to your agent's skill directory
 | [`sap-cap-test`](skills/sap-cap-test/) | Scaffolds and runs CAP tests with `cds add test` + `cds test`. Opt-in coverage via `c8`. | Test files under `test/` and one of `CAP-TEST-REPORT.md` / `CAP-TEST-FAILURE.md` at the project root. |
 | [`sap-cap-code-review`](skills/sap-cap-code-review/) | Read-only static analysis of a PR / branch / file list. Classifies findings as Critical / High / Medium / Low. | `CAP-CODE-REVIEW.md` at the project root. |
 | [`sap-cap-upgrade`](skills/sap-cap-upgrade/) | Upgrades `@sap/cds*`, `@cap-js/*`, `@sap-cloud-sdk/*`, `@sap/eslint-plugin-cds` to the latest stable (incl. majors). Runs a **vulnerability gate** on every target version (osv.dev primary, npm advisory bulk fallback) — aborts the upgrade when any target has an advisory ≥ moderate. Cross-checks failures against locally mirrored CAP + Cloud SDK JS changelogs and reports ONLY bugs caused by the version bump. | Edits `package.json` (and `package-lock.json` via `npm install`) in apply mode — and only when the vulnerability gate passes. Plan mode writes nothing. |
+| [`sap-cap-nodejs-dev`](skills/sap-cap-nodejs-dev/) | CAP Node.js development guide. Domain-first ("less code → less mistakes"): prefers CDS schema, annotations, projections and CAP's generic providers over hand-written handlers. Strict scope: refuses UI/frontend, Java CAP, non-CAP backends, and any internal/protected/deprecated CAP API. | Suggests CDS / JS / config files inside the project's `db/`, `srv/`, and `package.json` / `.cdsrc.json`. Never edits `app/` (UI). Never runs `git add/commit/push` and never installs dependencies. |
 
 ### sap-cap-test (test-only)
 
@@ -113,6 +114,22 @@ the invocation explicitly contains one of: `apply`, `aplicar`, `confirm`,
 
 Reference catalog: `skills/sap-cap-upgrade/references/packages-catalog.md`
 
+### sap-cap-nodejs-dev (CAP Node.js development)
+
+| Allowed write targets |
+|---|
+| `db/**` (CDS schema, views, seed CSV) |
+| `srv/**` (service `.cds`, Node.js handlers, CAP-side `@UI.*` annotations) |
+| `package.json`, `.cdsrc.json` (CDS config only — never adds runtime deps without the user) |
+
+**Never**: edits `app/` (UI is out of scope); writes Java / Spring / Express / NestJS code; introduces non-CAP architectures (custom OData / REST / GraphQL outside `@cap-js/graphql`); imports from `@sap/cds/lib/...` or other internal paths; uses `@deprecated` / `@experimental` / `@internal` / `@protected` APIs; runs `git add/commit/push`; installs dependencies.
+
+**Domain-first guarantee.** Decision order is enforced: schema → annotations → views/projections → `@cap-js/*` plugins → handler (last resort). The "is this PR domain-first?" checklist lives at [`skills/sap-cap-nodejs-dev/references/domain-first.md`](skills/sap-cap-nodejs-dev/references/domain-first.md).
+
+> 🔒 **Audited surface.** The skill ships [`skills/sap-cap-nodejs-dev/SECURITY.md`](skills/sap-cap-nodejs-dev/SECURITY.md) with a 41-vector posture matrix (Prompt Injection, MCP/Tool Poisoning, Supply Chain, Eval / Command / SSRF / Path / Unsafe Deserialization, Credential / Token Leakage, Overpermission, Unauthorized Deploy, Telemetry Leakage, …) plus reproducible `grep` / Python checks the auditor can re-run. The only credential material in the corpus is mocked dev (alice/bob) and a postgres example, both `[development]`-profile gated and explicitly labeled DEV-ONLY.
+
+Reference catalog: [`skills/sap-cap-nodejs-dev/SKILL.md`](skills/sap-cap-nodejs-dev/SKILL.md)
+
 ## Shared principles
 
 Every skill in this repo follows the same hard rules:
@@ -145,9 +162,14 @@ sap-skills/
     │   ├── SKILL.md
     │   ├── references/
     │   └── templates/
-    └── sap-cap-upgrade/
+    ├── sap-cap-upgrade/
+    │   ├── SKILL.md
+    │   └── references/          ← changelogs/, releases/, packages-catalog.md, ...
+    └── sap-cap-nodejs-dev/
         ├── SKILL.md
-        └── references/          ← changelogs/, releases/, packages-catalog.md, ...
+        ├── SECURITY.md          ← 41-vector audit + reproducible checks
+        ├── references/          ← domain-first.md, best-practices.md, capire mirrors
+        └── templates/
 ```
 
 `SKILL.md` is the contract the agent reads. `references/` are the
