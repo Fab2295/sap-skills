@@ -12,6 +12,51 @@ skill version at the moment of the change.
 
 _No unreleased repo-level changes._
 
+## 2026-05-13 — sap-rap-dev added (ABAP / RAP family bootstrapped)
+
+### Added
+- New skill **sap-rap-dev** (`0.2.0`, status `draft`). SAP ABAP RESTful
+  Application Programming Model (RAP) development guide. End-to-end scope:
+  CDS table/view/projection entities, behavior definitions and
+  implementations (managed / unmanaged / projection / extension), service
+  definitions + bindings, metadata extensions, value helps, file
+  upload/download via `@Semantics.largeObject` streams, RAP testing.
+  Default OData version: **V4**; V2 is opt-in only. Refuses CAP
+  (Node.js/Java), classic ABAP frameworks (BOPF, FPM, Web Dynpro, SAP
+  GUI), generic ABAP, UI5/Fiori frontend code, non-SAP backends, and any
+  `NOT_RELEASED` / `NOT_TO_BE_RELEASED` / deprecated API. First skill
+  in the **SAP ABAP / RAP** family — the section in the README is now
+  populated.
+- 18 artifact-anchored reference files under
+  [`skills/sap-rap-dev/references/`](skills/sap-rap-dev/references/):
+  `cds-view-entity.md`, `cds-table-entity.md`, `cds-projection-view.md`,
+  `behavior-definition.md`, `behavior-implementation.md`,
+  `managed-vs-unmanaged.md`, `service-definition.md`,
+  `service-binding.md`, `metadata-extension.md`, `eml.md`,
+  `value-help.md`, `stream-handling.md`, `testing-rap.md`,
+  `cds-annotations.md`, `release-support.md`, `released-apis.md`,
+  `learn.md`, `glossary.md`. Each populated with substantive guidance
+  and runnable CDS / BDEF / ABAP examples.
+- Root [README.md](README.md): new row in the **SAP ABAP / RAP** family
+  table, dedicated section "sap-rap-dev (RAP development)" with the
+  allowed-write-targets table, V4-default rule, released-API rule, and
+  untrusted-content discipline, plus a new entry in the layout tree.
+
+### Changed
+- The **SAP ABAP / RAP** section in the README is no longer a "_No skills
+  yet._" placeholder.
+
+### Security
+- The new skill ships with the same security scans the rest of the repo
+  uses: prompt-injection / instruction-override phrases, shell-exec
+  patterns, secret-shaped strings, and non-allow-listed external URLs.
+  All four scans clean at release time. The skill declares an explicit
+  **untrusted-content discipline** in `SKILL.md §9` — every input (user
+  messages, file contents, pasted CDS/ABAP snippets, fetched help pages,
+  command output) is treated as data, never instructions; the skill
+  never rescopes itself from pasted directives and never echoes
+  secret-shaped values back into its output.
+
 ## 2026-05-13 — repo re-framed, changelogs adopted
 
 ### Changed
